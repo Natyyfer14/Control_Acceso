@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Escáner Control de Acceso</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; text-align: center; background: #f3f4f6; margin: 0; padding: 20px; }
+    h2 { color: #1f2937; margin-bottom: 15px; }
+    #reader { width: 100%; max-width: 400px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .card { background: #fff; max-width: 380px; margin: 20px auto; padding: 20px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: none; text-align: left; }
+    .card-title { font-size: 1.25em; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; }
+    .label { font-size: 0.85em; font-weight: 600; color: #6b7280; text-transform: uppercase; margin-top: 10px; }
+    .val { font-size: 1.15em; font-weight: 500; color: #111827; margin-bottom: 8px; }
+    .status-ok { color: #059669; }
+    .status-error { color: #dc2626; }
+    button.scan-again { width: 100%; margin-top: 15px; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <h2>Control de Acceso QR</h2>
+  <div id="reader"></div>
+
+  <div id="resultado" class="card">
+    <div id="status-title" class="card-title"></div>
+    
+    <div class="label">Nombre:</div>
+    <div id="res-nombre" class="val">-</div>
+    
+    <div class="label">Curso:</div>
+    <div id="res-curso" class="val">-</div>
+    
+    <div class="label">Correo:</div>
+    <div id="res-correo" class="val">-</div>
+    
+    <div class="label">Código / Folio:</div>
+    <div id="res-codigo" class="val" style="color: #6b7280; font-size: 0.95em;">-</div>
+
+    <button class="scan-again" onclick="reiniciarEscaner()">Escanear Otro Código</button>
+  </div>
+
+  <script>
+    let baseDatos = [];
+    let html5QrcodeScanner;
+
+    // Cargar datos JSON creados
+    fetch('datos.json')
+      .then(res => res.json())
+      .then(data => { baseDatos = data; })
+      .catch(err => console.error("Error cargando base de datos:", err));
+
+    function onScanSuccess(decodedText) {
+      const code = decodedText.trim();
+      const persona = baseDatos.find(p => p.Codigo === code || p.Folio === code);
+      const resCard = document.getElementById('resultado');
+
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear();
+      }
+
+      resCard.style.display = "block";
+
+      if (persona) {
+        document.getElementById('status-title').className = "card-title status-ok";
+        document.getElementById('status-title').innerText = "✅ ASISTENTE ENCONTRADO";
+        document.getElementById('res-nombre').innerText = persona["Estudiante/Docente"] || "Sin Registro";
+        document.getElementById('res-curso').innerText = persona["Curso"] || "Sin Registro";
+        document.getElementById('res-correo').innerText = persona["correo"] || "Sin Registro";
+        document.getElementById('res-codigo').innerText = code;
+      } else {
+        document.getElementById('status-title').className = "card-title status-error";
+        document.getElementById('status-title').innerText = "❌ CÓDIGO NO REGISTRADO";
+        document.getElementById('res-nombre').innerText = "Desconocido";
+        document.getElementById('res-curso').innerText = "-";
+        document.getElementById('res-correo').innerText = "-";
+        document.getElementById('res-codigo').innerText = code;
+      }
+    }
+
+    function iniciarEscaner() {
+      html5QrcodeScanner = new Html5QrcodeScanner(
+        "reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false
+      );
+      html5QrcodeScanner.render(onScanSuccess);
+    }
+
+    function reiniciarEscaner() {
+      document.getElementById('resultado').style.display = "none";
+      iniciarEscaner();
+    }
+
+    window.onload = iniciarEscaner;
+  </script>
+
+</body>
+</html>
